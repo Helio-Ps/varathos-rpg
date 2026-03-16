@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Varathos — A Sombra do Dragão</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#0a0a0c;--surface:#111115;--border:#1a1a22;
+  --text:#c8c5bf;--text-dim:#5a5750;--text-bright:#e8e5df;
+  --accent:#8b2020;--accent-glow:#c43030;
+  --gold:#b8943e;--gold-dim:#6b5a2a;
+  --green:#3a8a4a;--blue:#4a7ab8;--purple:#8a5ab8;
+}
+
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Crimson Text',serif;overflow:hidden}
+
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 80%,rgba(139,32,32,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(74,42,107,.04) 0%,transparent 60%);pointer-events:none;z-index:0}
+
+/* ===== SCREENS ===== */
+.screen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.screen.active{display:flex}
+
+/* ===== API KEY SCREEN ===== */
+#screen-key h1{font-family:'Cinzel',serif;font-weight:900;font-size:28px;color:var(--accent-glow);text-transform:uppercase;letter-spacing:6px;margin-bottom:6px;text-shadow:0 0 30px rgba(196,48,48,.3)}
+#screen-key .subtitle{font-family:'Crimson Text',serif;color:var(--text-dim);font-style:italic;font-size:15px;margin-bottom:30px}
+
+.key-box{width:100%;max-width:420px;text-align:center}
+.key-box label{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:left}
+.key-box input{width:100%;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text-bright);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .3s}
+.key-box input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(139,32,32,.15)}
+.key-box input::placeholder{color:var(--text-dim);font-size:11px}
+
+.key-info{margin-top:12px;font-size:13px;color:var(--text-dim);line-height:1.6}
+.key-info a{color:var(--gold);text-decoration:none}
+.key-info a:hover{text-decoration:underline}
+
+.key-error{color:var(--accent-glow);font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:8px;min-height:16px}
+
+.btn-primary{margin-top:20px;padding:12px 36px;background:none;border:1px solid var(--accent);color:var(--accent-glow);border-radius:8px;cursor:pointer;font-family:'Cinzel',serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;transition:all .3s}
+.btn-primary:hover{background:rgba(196,48,48,.15)}
+.btn-primary:disabled{opacity:.3;pointer-events:none}
+
+.key-saved{display:none;align-items:center;gap:6px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green)}
+
+/* ===== CLASS SELECT ===== */
+.class-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:700px}
+.class-card{width:200px;padding:20px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:all .3s;text-align:center}
+.class-card:hover{border-color:var(--gold-dim);transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.class-icon{font-size:36px;margin-bottom:10px}
+.class-card h3{font-family:'Cinzel',serif;font-size:14px;color:var(--text-bright);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.class-card p{font-size:13px;color:var(--text-dim);line-height:1.5}
+.class-bonus{margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:.5px}
+
+/* ===== GAME UI ===== */
+#app{display:none;flex-direction:column;height:100vh;height:100dvh;position:relative;z-index:1}
+
+#hud{flex-shrink:0;padding:10px 14px;background:linear-gradient(180deg,#0d0d10 0%,transparent 100%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;flex-wrap:wrap}
+
+.hud-title{font-family:'Cinzel',serif;font-weight:900;font-size:13px;color:var(--accent-glow);text-transform:uppercase;letter-spacing:3px;text-shadow:0 0 20px rgba(196,48,48,.3)}
+.hud-stat{display:flex;align-items:center;gap:5px;color:var(--text-dim)}
+.hud-stat .label{text-transform:uppercase;font-size:9px;letter-spacing:1px}
+.hud-bar{width:70px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.hud-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.hud-bar-fill.hp{background:linear-gradient(90deg,var(--accent),var(--accent-glow))}
+.hud-bar-fill.xp{background:linear-gradient(90deg,var(--gold-dim),var(--gold))}
+.hud-val{color:var(--text);font-weight:400}
+.hud-level{color:var(--gold);font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px}
+.hud-class{color:var(--purple);font-size:9px;text-transform:uppercase;letter-spacing:1px}
+.hud-spacer{flex:1}
+
+.hud-btn{color:var(--text-dim);font-size:10px;font-family:'JetBrains Mono',monospace;cursor:pointer;padding:2px 8px;border:1px solid var(--border);border-radius:4px;transition:all .3s;user-select:none;background:none}
+.hud-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
+
+/* CHAT */
+#chat{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth}
+#chat::-webkit-scrollbar{width:4px}
+#chat::-webkit-scrollbar-track{background:transparent}
+#chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:15px;line-height:1.65;animation:msgIn .3s ease;word-wrap:break-word}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.msg.player{align-self:flex-end;background:linear-gradient(135deg,#1a1a2e,#16162a);border:1px solid #252540;color:var(--text-bright);border-bottom-right-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px}
+.msg.narrator{align-self:flex-start;background:transparent;color:var(--text);padding:10px 4px;font-style:italic;max-width:90%}
+.msg.narrator .dmg{color:var(--accent-glow);font-weight:600;font-style:normal}
+.msg.narrator .item{color:var(--gold);font-weight:600;font-style:normal}
+.msg.narrator .loc{color:#6aaa9a;font-weight:600;font-style:normal}
+.msg.narrator .npc{color:#a88aaa;font-weight:600;font-style:normal}
+.msg.narrator .quest{color:var(--blue);font-weight:600;font-style:normal}
+.msg.narrator .craft{color:var(--green);font-weight:600;font-style:normal}
+
+.msg.system{align-self:center;background:transparent;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 0}
+.msg.levelup{align-self:center;background:linear-gradient(135deg,rgba(184,148,62,.12),rgba(184,148,62,.04));border:1px solid rgba(184,148,62,.25);color:var(--gold);font-family:'Cinzel',serif;font-weight:700;font-size:14px;text-align:center;padding:14px 24px;letter-spacing:2px;text-transform:uppercase;max-width:90%}
+.msg.death{align-self:center;background:linear-gradient(135deg,rgba(139,32,32,.15),rgba(139,32,32,.05));border:1px solid rgba(196,48,48,.3);color:var(--accent-glow);font-family:'Cinzel',serif;font-weight:700;font-size:16px;text-align:center;padding:20px 30px;letter-spacing:2px;text-transform:uppercase;max-width:90%}
+.msg.victory{align-self:center;background:linear-gradient(135deg,rgba(184,148,62,.15),rgba(184,148,62,.04));border:1px solid rgba(184,148,62,.3);color:var(--gold);font-family:'Cinzel',serif;font-weight:700;font-size:16px;text-align:center;padding:20px 30px;letter-spacing:2px;text-transform:uppercase;max-width:90%}
+
+.typing-indicator{align-self:flex-start;padding:10px 4px;display:flex;gap:4px}
+.typing-indicator span{width:5px;height:5px;background:var(--text-dim);border-radius:50%;animation:typeBounce 1.2s infinite}
+.typing-indicator span:nth-child(2){animation-delay:.15s}
+.typing-indicator span:nth-child(3){animation-delay:.3s}
+@keyframes typeBounce{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-4px);opacity:1}}
+
+/* INPUT */
+#input-area{flex-shrink:0;padding:10px 14px 14px;background:linear-gradient(0deg,#0d0d10,transparent);border-top:1px solid var(--border)}
+#input-row{display:flex;gap:8px;align-items:center}
+#player-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text-bright);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .3s}
+#player-input::placeholder{color:var(--text-dim);font-style:italic;font-family:'Crimson Text',serif;font-size:14px}
+#player-input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(139,32,32,.15)}
+#send-btn{width:42px;height:42px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;flex-shrink:0}
+#send-btn:hover{border-color:var(--accent);color:var(--accent-glow)}
+#send-btn svg{width:18px;height:18px}
+
+/* OVERLAYS */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.overlay-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:340px;max-height:75vh;overflow-y:auto}
+.overlay-box::-webkit-scrollbar{width:3px}
+.overlay-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.overlay-box h3{font-family:'Cinzel',serif;font-size:13px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;text-align:center}
+.overlay-close{display:block;margin:16px auto 0;background:none;border:1px solid var(--border);color:var(--text-dim);padding:6px 20px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px}
+
+.inv-item{padding:8px 12px;background:rgba(184,148,62,.05);border:1px solid rgba(184,148,62,.1);border-radius:6px;margin-bottom:6px;font-family:'Crimson Text',serif;font-size:14px;color:var(--text)}
+.inv-empty{color:var(--text-dim);text-align:center;font-style:italic;font-size:13px}
+
+#map-canvas{width:100%;height:320px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px}
+.map-legend{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);text-align:center;letter-spacing:.5px}
+
+.craft-recipe{padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all .3s}
+.craft-recipe:hover{border-color:var(--green);background:rgba(58,138,74,.05)}
+.craft-recipe.disabled{opacity:.35;pointer-events:none}
+.craft-name{font-family:'Cinzel',serif;font-size:12px;color:var(--green);letter-spacing:1px;margin-bottom:4px}
+.craft-mats{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim)}
+.craft-result{font-family:'Crimson Text',serif;font-size:12px;color:var(--gold);margin-top:3px;font-style:italic}
+
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);font-family:'JetBrains Mono',monospace;font-size:11px}
+.stat-label{color:var(--text-dim);text-transform:uppercase;font-size:9px;letter-spacing:1px}
+.stat-val{color:var(--text-bright)}
+.skill-item{padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px}
+.skill-name{font-family:'Cinzel',serif;font-size:11px;color:var(--purple);letter-spacing:1px}
+.skill-desc{font-size:12px;color:var(--text-dim);margin-top:2px;font-style:italic}
+
+.quest-item{padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.quest-item.active{border-color:rgba(74,122,184,.3);background:rgba(74,122,184,.05)}
+.quest-item.done{border-color:rgba(58,138,74,.2);opacity:.5}
+.quest-name{font-family:'Cinzel',serif;font-size:12px;color:var(--blue);letter-spacing:1px}
+.quest-desc{font-size:12px;color:var(--text-dim);margin-top:3px;font-style:italic}
+.quest-status{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+#restart-btn{display:none;margin:10px auto;background:none;border:1px solid var(--accent);color:var(--accent-glow);padding:10px 28px;border-radius:8px;cursor:pointer;font-family:'Cinzel',serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;transition:all .3s}
+#restart-btn:hover{background:rgba(196,48,48,.15)}
+
+@media(max-width:600px){
+  .hud-title{font-size:11px;letter-spacing:1.5px}
+  .hud-bar{width:55px}
+  .msg{max-width:92%;font-size:14px}
+  .class-card{width:160px;padding:14px 12px}
+  #screen-key h1{font-size:20px;letter-spacing:4px}
+  .overlay-box{width:300px;padding:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SCREEN 1: API KEY ===== -->
+<div class="screen active" id="screen-key">
+  <h1>Varathos</h1>
+  <div class="subtitle">A Sombra do Dragão</div>
+  <div class="key-box">
+    <label>Chave da API Gemini</label>
+    <input type="password" id="api-key-input" placeholder="Cole sua API key aqui (AIzaSy...)" />
+    <div class="key-info">
+      Pegue sua key grátis em <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>
+    </div>
+    <div class="key-error" id="key-error"></div>
+    <div class="key-saved" id="key-saved">✓ Key salva no navegador</div>
+    <button class="btn-primary" id="btn-validate" onclick="validateKey()">Entrar</button>
+  </div>
+</div>
+
+<!-- ===== SCREEN 2: CLASS SELECT ===== -->
+<div class="screen" id="screen-class">
+  <h1 style="font-family:'Cinzel',serif;font-weight:900;font-size:28px;color:var(--accent-glow);text-transform:uppercase;letter-spacing:6px;margin-bottom:6px;text-shadow:0 0 30px rgba(196,48,48,.3)">Varathos</h1>
+  <div style="font-family:'Crimson Text',serif;color:var(--text-dim);font-style:italic;font-size:15px;margin-bottom:30px">Escolha seu destino</div>
+  <div class="class-cards">
+    <div class="class-card" onclick="selectClass('guerreiro')">
+      <div class="class-icon">⚔️</div>
+      <h3>Guerreiro</h3>
+      <p>Força bruta e resistência. Aguenta mais dano e causa mais com armas.</p>
+      <div class="class-bonus">+30 HP · +dano físico · armadura forte</div>
+    </div>
+    <div class="class-card" onclick="selectClass('mago')">
+      <div class="class-icon">🔮</div>
+      <h3>Mago</h3>
+      <p>Poder arcano. Conjura magias sem arma, mas é frágil.</p>
+      <div class="class-bonus">+mana · magias ofensivas · frágil</div>
+    </div>
+    <div class="class-card" onclick="selectClass('ladino')">
+      <div class="class-icon">🗡️</div>
+      <h3>Ladino</h3>
+      <p>Furtivo e ágil. Esquiva, rouba itens e acha caminhos secretos.</p>
+      <div class="class-bonus">+esquiva · furto · caminhos ocultos</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GAME UI ===== -->
+<div id="app">
+  <div id="hud">
+    <span class="hud-title">Varathos</span>
+    <span class="hud-level" id="hud-lvl">Nv.1</span>
+    <span class="hud-class" id="hud-class"></span>
+    <div class="hud-stat">
+      <span class="label">HP</span>
+      <div class="hud-bar"><div class="hud-bar-fill hp" id="hp-bar" style="width:100%"></div></div>
+      <span class="hud-val" id="hp-val">100</span>
+    </div>
+    <div class="hud-stat">
+      <span class="label">XP</span>
+      <div class="hud-bar"><div class="hud-bar-fill xp" id="xp-bar" style="width:0%"></div></div>
+      <span class="hud-val" id="xp-val">0/30</span>
+    </div>
+    <span class="hud-spacer"></span>
+    <button class="hud-btn" id="btn-map">MAPA</button>
+    <button class="hud-btn" id="btn-inv">ITENS</button>
+    <button class="hud-btn" id="btn-craft">CRAFT</button>
+    <button class="hud-btn" id="btn-stats">STATS</button>
+    <button class="hud-btn" id="btn-quests">QUESTS</button>
+  </div>
+  <div id="chat"></div>
+  <button id="restart-btn">Renascer</button>
+  <div id="input-area">
+    <div id="input-row">
+      <input type="text" id="player-input" placeholder="O que você faz?" autocomplete="off" />
+      <button id="send-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="ov-inv"><div class="overlay-box"><h3>Inventário</h3><div id="inv-list"></div><button class="overlay-close" onclick="closeOv('ov-inv')">Fechar</button></div></div>
+<div class="overlay" id="ov-map"><div class="overlay-box" style="width:380px"><h3>Mapa do Mundo</h3><canvas id="map-canvas"></canvas><div class="map-legend">● Você está aqui · ○ Visitado · ◌ Desconhecido</div><button class="overlay-close" onclick="closeOv('ov-map')">Fechar</button></div></div>
+<div class="overlay" id="ov-craft"><div class="overlay-box"><h3>Crafting</h3><div id="craft-list"></div><button class="overlay-close" onclick="closeOv('ov-craft')">Fechar</button></div></div>
+<div class="overlay" id="ov-stats"><div class="overlay-box"><h3>Atributos & Habilidades</h3><div id="stats-content"></div><button class="overlay-close" onclick="closeOv('ov-stats')">Fechar</button></div></div>
+<div class="overlay" id="ov-quests"><div class="overlay-box"><h3>Missões</h3><div id="quest-list"></div><button class="overlay-close" onclick="closeOv('ov-quests')">Fechar</button></div></div>
+
+<script>
+// ==================== GLOBALS ====================
+let API_KEY = '';
+let state = {};
+let busy = false;
+const chat = document.getElementById('chat');
+const inputEl = document.getElementById('player-input');
+
+// ==================== DATA ====================
+const RECIPES = [
+  {id:'tocha',name:'Tocha',mats:['Graveto','Pano'],result:'Tocha',desc:'Ilumina cavernas e espanta lobos'},
+  {id:'pocao_hp',name:'Poção de Cura',mats:['Ervas medicinais','Frasco vazio'],result:'Poção de cura',desc:'Restaura 30 HP'},
+  {id:'adaga',name:'Adaga Improvisada',mats:['Graveto','Pedra afiada'],result:'Adaga improvisada',desc:'Arma fraca, melhor que nada'},
+  {id:'armadura_couro',name:'Armadura de Couro',mats:['Couro de lobo','Corda'],result:'Armadura de couro',desc:'Reduz dano recebido'},
+  {id:'arco',name:'Arco Curto',mats:['Graveto','Corda','Pena'],result:'Arco curto',desc:'Ataque à distância'},
+  {id:'pocao_forca',name:'Poção de Força',mats:['Cogumelo vermelho','Frasco vazio'],result:'Poção de força',desc:'Dano dobrado por 1 combate'},
+  {id:'bomba',name:'Bomba de Pólvora',mats:['Pólvora','Frasco vazio','Pano'],result:'Bomba de pólvora',desc:'Dano massivo, uso único'},
+  {id:'antidoto',name:'Antídoto',mats:['Ervas medicinais','Cogumelo vermelho'],result:'Antídoto',desc:'Cura envenenamento'},
+];
+
+const QUESTS_DEF = [
+  {id:'main',name:'A Sombra de Varathos',desc:'Encontre e mate o dragão Varathos nas Montanhas Negras.',type:'main'},
+  {id:'ferreiro',name:'Lâmina Perdida',desc:'O ferreiro de Millhaven precisa de minério das montanhas para forjar uma espada.',type:'side'},
+  {id:'sabio',name:'Sabedoria Antiga',desc:'O velho sábio quer um artefato da floresta profunda.',type:'side'},
+  {id:'curandeira',name:'Ervas Raras',desc:'A curandeira precisa de cogumelos do Pântano Negro.',type:'side'},
+  {id:'bandidos',name:'Caça aos Bandidos',desc:'Elimine os bandidos da Estrada das Sombras.',type:'side'},
+];
+
+const MAP_LOCS = [
+  {id:'floresta',name:'Floresta Sombria',x:.15,y:.75,connects:['trilha']},
+  {id:'trilha',name:'Trilha Esquecida',x:.30,y:.60,connects:['floresta','aldeia']},
+  {id:'aldeia',name:'Aldeia de Millhaven',x:.45,y:.45,connects:['trilha','estrada','pantano']},
+  {id:'estrada',name:'Estrada das Sombras',x:.60,y:.35,connects:['aldeia','montanhas']},
+  {id:'pantano',name:'Pântano Negro',x:.40,y:.25,connects:['aldeia','montanhas']},
+  {id:'montanhas',name:'Montanhas Negras',x:.75,y:.18,connects:['estrada','pantano','covil']},
+  {id:'covil',name:'Covil de Varathos',x:.88,y:.10,connects:['montanhas']},
+];
+
+const CLASS_SKILLS = {
+  guerreiro:[
+    {lvl:1,name:'Resistência',desc:'+30 HP base. Reduz dano recebido.'},
+    {lvl:2,name:'Golpe Brutal',desc:'Dano +50% com armas corpo-a-corpo.'},
+    {lvl:4,name:'Escudo de Ferro',desc:'Bloqueia 1 ataque por combate.'},
+    {lvl:5,name:'Fúria do Guerreiro',desc:'1 ataque devastador por combate.'},
+  ],
+  mago:[
+    {lvl:1,name:'Centelha Arcana',desc:'Ataca com magia sem arma. Dano 15.'},
+    {lvl:2,name:'Barreira Mágica',desc:'Absorve 10 de dano por combate.'},
+    {lvl:4,name:'Bola de Fogo',desc:'Magia poderosa, dano de área.'},
+    {lvl:5,name:'Tempestade Arcana',desc:'Magia devastadora, 1x por combate.'},
+  ],
+  ladino:[
+    {lvl:1,name:'Passos Leves',desc:'Esquiva ataques. Encontra itens ocultos.'},
+    {lvl:2,name:'Ataque Furtivo',desc:'Dano dobrado de surpresa.'},
+    {lvl:4,name:'Atalho Secreto',desc:'Caminhos alternativos no mapa.'},
+    {lvl:5,name:'Golpe Letal',desc:'1 ataque assassino por combate.'},
+  ],
+};
+
+const LEVEL_TABLE = [
+  {level:1,xpNeeded:30,hpBonus:0},
+  {level:2,xpNeeded:70,hpBonus:15},
+  {level:3,xpNeeded:130,hpBonus:20},
+  {level:4,xpNeeded:200,hpBonus:25},
+  {level:5,xpNeeded:300,hpBonus:30},
+];
+
+// ==================== API KEY SCREEN ====================
+// Try loading saved key
+const savedKey = localStorage.getItem('varathos_api_key');
+if (savedKey) {
+  document.getElementById('api-key-input').value = savedKey;
+  document.getElementById('key-saved').style.display = 'flex';
+}
+
+document.getElementById('api-key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') validateKey();
+});
+
+async function validateKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const errEl = document.getElementById('key-error');
+  errEl.textContent = '';
+
+  if (!key) { errEl.textContent = 'Cole sua API key acima.'; return; }
+  if (!key.startsWith('AIza')) { errEl.textContent = 'Key inválida. Deve começar com AIza...'; return; }
+
+  document.getElementById('btn-validate').disabled = true;
+  document.getElementById('btn-validate').textContent = 'Verificando...';
+
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'Diga apenas "ok"' }] }],
+        generationConfig: { maxOutputTokens: 10 }
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || 'Key inválida');
+    }
+
+    // Key works!
+    API_KEY = key;
+    localStorage.setItem('varathos_api_key', key);
+    showScreen('screen-class');
+  } catch (err) {
+    errEl.textContent = 'Erro: ' + err.message;
+  }
+
+  document.getElementById('btn-validate').disabled = false;
+  document.getElementById('btn-validate').textContent = 'Entrar';
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('app').style.display = 'none';
+  if (id === 'game') {
+    document.getElementById('app').style.display = 'flex';
+  } else {
+    document.getElementById(id).classList.add('active');
+  }
+}
+
+// ==================== CLASS SELECT ====================
+function selectClass(cls) {
+  const baseHp = cls === 'guerreiro' ? 130 : 100;
+  state = {
+    hp:baseHp, maxHp:baseHp, xp:0, level:1,
+    playerClass:cls,
+    location:'Floresta Sombria',
+    inventory:[], history:[], turnCount:0, gameOver:false,
+    dragonHp:200, killedEnemies:[],
+    visitedPlaces:['Floresta Sombria'],
+    hasWeapon:cls==='mago', hasArmor:false,
+    metNpc:false, questStage:0,
+    quests:[{id:'main',status:'active'}],
+    skills:CLASS_SKILLS[cls].filter(s=>s.lvl<=1).map(s=>s.name),
+    craftedItems:[],
+  };
+  showScreen('game');
+  updateHud();
+  startGame();
+}
+
+// ==================== HUD ====================
+function xpNext() {
+  const e = LEVEL_TABLE.find(l => l.level === state.level);
+  return e ? e.xpNeeded : 999;
+}
+
+function updateHud() {
+  document.getElementById('hp-bar').style.width = Math.max(0,(state.hp/state.maxHp)*100)+'%';
+  document.getElementById('hp-val').textContent = Math.max(0,state.hp);
+  const xn = xpNext();
+  document.getElementById('xp-bar').style.width = Math.min(100,(state.xp/xn)*100)+'%';
+  document.getElementById('xp-val').textContent = state.xp+'/'+xn;
+  document.getElementById('hud-lvl').textContent = 'Nv.'+state.level;
+  document.getElementById('hud-class').textContent = state.playerClass?state.playerClass.toUpperCase():'';
+}
+
+function checkLevelUp() {
+  if (state.xp >= xpNext() && state.level < 5) {
+    state.level++;
+    const e = LEVEL_TABLE.find(l => l.level === state.level);
+    if (e) { state.maxHp += e.hpBonus; state.hp = Math.min(state.hp + e.hpBonus, state.maxHp); }
+    const ns = CLASS_SKILLS[state.playerClass].filter(s => s.lvl === state.level);
+    ns.forEach(s => { if (!state.skills.includes(s.name)) state.skills.push(s.name); });
+    updateHud();
+    const st = ns.length > 0 ? '<br>' + ns.map(s => s.name + ' — ' + s.desc).join('<br>') : '';
+    addMsg('NÍVEL ' + state.level + ' ALCANÇADO!' + st, 'levelup');
+  }
+}
+
+// ==================== OVERLAYS ====================
+function openOv(id) { document.getElementById(id).classList.add('open'); }
+function closeOv(id) { document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('btn-inv').onclick = () => { renderInv(); openOv('ov-inv'); };
+document.getElementById('btn-map').onclick = () => { renderMap(); openOv('ov-map'); };
+document.getElementById('btn-craft').onclick = () => { renderCraft(); openOv('ov-craft'); };
+document.getElementById('btn-stats').onclick = () => { renderStats(); openOv('ov-stats'); };
+document.getElementById('btn-quests').onclick = () => { renderQuests(); openOv('ov-quests'); };
+
+function renderInv() {
+  const l = document.getElementById('inv-list');
+  l.innerHTML = state.inventory.length === 0
+    ? '<div class="inv-empty">Nada... apenas a roupa do corpo.</div>'
+    : state.inventory.map(i => '<div class="inv-item">'+i+'</div>').join('');
+}
+
+function renderMap() {
+  const canvas = document.getElementById('map-canvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width*dpr; canvas.height = rect.height*dpr;
+  ctx.scale(dpr,dpr);
+  const W=rect.width, H=rect.height;
+
+  ctx.fillStyle='#0d0d12'; ctx.fillRect(0,0,W,H);
+
+  // Terrain blobs
+  [[.15,.75,'#0f1a0f',50,40],[.45,.45,'#12120f',35,25],[.40,.25,'#0d100d',30,20],[.80,.15,'#14100a',45,30]]
+    .forEach(([x,y,c,rx,ry]) => { ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(x*W,y*H,rx,ry,0,0,Math.PI*2); ctx.fill(); });
+
+  const curMap = MAP_LOCS.find(l => state.location.toLowerCase().includes(l.name.split(' ')[0].toLowerCase())) || MAP_LOCS[0];
+
+  // Connections
+  MAP_LOCS.forEach(loc => {
+    loc.connects.forEach(cid => {
+      const o = MAP_LOCS.find(l=>l.id===cid);
+      if(!o) return;
+      const v1 = state.visitedPlaces.some(v=>v.toLowerCase().includes(loc.name.split(' ')[0].toLowerCase()));
+      const v2 = state.visitedPlaces.some(v=>v.toLowerCase().includes(o.name.split(' ')[0].toLowerCase()));
+      ctx.strokeStyle = (v1&&v2) ? 'rgba(184,148,62,.2)' : 'rgba(255,255,255,.04)';
+      ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(loc.x*W,loc.y*H); ctx.lineTo(o.x*W,o.y*H); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  });
+
+  // Nodes
+  MAP_LOCS.forEach(loc => {
+    const px=loc.x*W, py=loc.y*H;
+    const visited = state.visitedPlaces.some(v=>v.toLowerCase().includes(loc.name.split(' ')[0].toLowerCase()));
+    const isCur = loc.id===curMap.id;
+
+    if(isCur) {
+      const g=ctx.createRadialGradient(px,py,0,px,py,22);
+      g.addColorStop(0,'rgba(196,48,48,.35)'); g.addColorStop(1,'rgba(196,48,48,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,22,0,Math.PI*2); ctx.fill();
+    }
+
+    ctx.beginPath(); ctx.arc(px,py,isCur?6:4,0,Math.PI*2);
+    ctx.fillStyle = isCur?'#c43030' : visited?'rgba(184,148,62,.6)' : 'rgba(255,255,255,.12)';
+    ctx.fill();
+
+    if(isCur) { ctx.strokeStyle='rgba(196,48,48,.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.stroke(); }
+
+    ctx.font = isCur ? 'bold 11px "Cinzel",serif' : '10px "Crimson Text",serif';
+    ctx.fillStyle = isCur?'#e8e5df' : visited?'rgba(200,197,191,.5)' : 'rgba(200,197,191,.15)';
+    ctx.textAlign='center';
+    ctx.fillText(loc.name, px, py-(isCur?16:12));
+  });
+}
+
+function renderCraft() {
+  const l=document.getElementById('craft-list');
+  const inv=state.inventory.map(i=>i.toLowerCase());
+  l.innerHTML = RECIPES.map(r => {
+    const has=r.mats.every(m=>inv.includes(m.toLowerCase()));
+    const already=state.inventory.some(i=>i.toLowerCase()===r.result.toLowerCase());
+    const dis=!has||already;
+    return `<div class="craft-recipe ${dis?'disabled':''}" onclick="doCraft('${r.id}')">
+      <div class="craft-name">${r.name}</div>
+      <div class="craft-mats">${r.mats.join(' + ')}</div>
+      <div class="craft-result">${already?'✓ Já possui':'→ '+r.desc}</div></div>`;
+  }).join('');
+}
+
+function doCraft(id) {
+  const r=RECIPES.find(rc=>rc.id===id);if(!r)return;
+  const inv=state.inventory.map(i=>i.toLowerCase());
+  if(!r.mats.every(m=>inv.includes(m.toLowerCase())))return;
+  r.mats.forEach(m=>{const i=state.inventory.findIndex(x=>x.toLowerCase()===m.toLowerCase());if(i!==-1)state.inventory.splice(i,1);});
+  state.inventory.push(r.result);
+  const wpn=['adaga improvisada','arco curto','espada de ferro','espada encantada','machado de guerra'];
+  const arm=['armadura de couro','armadura de ferro','escudo'];
+  if(wpn.includes(r.result.toLowerCase()))state.hasWeapon=true;
+  if(arm.includes(r.result.toLowerCase()))state.hasArmor=true;
+  addMsg('✦ Você criou: '+r.result+' ('+r.desc+')','system');
+  renderCraft(); updateHud();
+}
+
+function renderStats() {
+  const el=document.getElementById('stats-content');
+  const cs=CLASS_SKILLS[state.playerClass]||[];
+  const un=cs.filter(s=>s.lvl<=state.level), lk=cs.filter(s=>s.lvl>state.level);
+  let h=`<div class="stat-row"><span class="stat-label">Classe</span><span class="stat-val">${state.playerClass}</span></div>
+    <div class="stat-row"><span class="stat-label">Nível</span><span class="stat-val">${state.level}</span></div>
+    <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val">${state.hp}/${state.maxHp}</span></div>
+    <div class="stat-row"><span class="stat-label">XP</span><span class="stat-val">${state.xp}/${xpNext()}</span></div>
+    <div class="stat-row"><span class="stat-label">Turnos</span><span class="stat-val">${state.turnCount}</span></div>
+    <div class="stat-row"><span class="stat-label">Inimigos</span><span class="stat-val">${state.killedEnemies.length}</span></div>
+    <div class="stat-row"><span class="stat-label">Locais</span><span class="stat-val">${state.visitedPlaces.length}/${MAP_LOCS.length}</span></div>
+    <div style="height:14px"></div><h3 style="font-size:11px;color:var(--purple)">Habilidades Ativas</h3>`;
+  un.forEach(s=>{h+=`<div class="skill-item"><div class="skill-name">${s.name}</div><div class="skill-desc">${s.desc}</div></div>`;});
+  if(lk.length>0){h+='<div style="height:10px"></div><h3 style="font-size:11px;color:var(--text-dim)">Bloqueadas</h3>';
+    lk.forEach(s=>{h+=`<div class="skill-item" style="opacity:.3"><div class="skill-name">Nv.${s.lvl} — ???</div><div class="skill-desc">Nível ${s.lvl}</div></div>`;});}
+  el.innerHTML=h;
+}
+
+function renderQuests() {
+  const el=document.getElementById('quest-list');
+  if(!state.quests.length){el.innerHTML='<div class="inv-empty">Nenhuma missão.</div>';return;}
+  el.innerHTML=state.quests.map(q=>{
+    const d=QUESTS_DEF.find(x=>x.id===q.id);if(!d)return '';
+    return `<div class="quest-item ${q.status==='done'?'done':'active'}">
+      <div class="quest-name">${d.type==='main'?'★ ':''}${d.name}</div>
+      <div class="quest-desc">${d.desc}</div>
+      <div class="quest-status">${q.status==='done'?'✓ Concluída':'● Em andamento'}</div></div>`;
+  }).join('');
+}
+
+// ==================== MESSAGES ====================
+function addMsg(t,c){const d=document.createElement('div');d.className='msg '+c;d.innerHTML=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;}
+function showTyping(){const d=document.createElement('div');d.className='typing-indicator';d.id='typing';d.innerHTML='<span></span><span></span><span></span>';chat.appendChild(d);chat.scrollTop=chat.scrollHeight;}
+function hideTyping(){const e=document.getElementById('typing');if(e)e.remove();}
+
+function typeText(text,cls){
+  hideTyping();
+  const div=document.createElement('div');div.className='msg '+cls;chat.appendChild(div);
+  return new Promise(resolve=>{
+    let i=0;
+    function tick(){
+      if(i>=text.length)return resolve();
+      if(text[i]==='<'){const c=text.indexOf('>',i);if(c!==-1){div.innerHTML+=text.substring(i,c+1);i=c+1;}else{div.innerHTML+=text[i++];}}
+      else{div.innerHTML+=text[i++];}
+      chat.scrollTop=chat.scrollHeight;
+      setTimeout(tick,16+Math.random()*14);
+    }
+    tick();
+  });
+}
+
+// ==================== GEMINI API ====================
+async function callAI(action) {
+  const skills = (CLASS_SKILLS[state.playerClass]||[]).filter(s=>s.lvl<=state.level).map(s=>s.name+': '+s.desc);
+
+  const systemPrompt = `Você é o narrador sombrio de um RPG de texto em português. O jogador (classe: ${state.playerClass}, nível ${state.level}) quer matar o dragão Varathos.
+
+ESTADO ATUAL:
+${JSON.stringify({
+  hp:state.hp, maxHp:state.maxHp, location:state.location, inventory:state.inventory,
+  level:state.level, playerClass:state.playerClass,
+  turnCount:state.turnCount, dragonHp:state.dragonHp,
+  killedEnemies:state.killedEnemies, visitedPlaces:state.visitedPlaces,
+  hasWeapon:state.hasWeapon, hasArmor:state.hasArmor,
+  questStage:state.questStage, metNpc:state.metNpc,
+  quests:state.quests, skills
+})}
+
+REGRAS:
+1. CONSISTÊNCIA: NUNCA contradiga o histórico. Se disse lobo, é lobo. Releia antes de responder.
+2. CURTO: 2-4 frases. Parece chat.
+3. CLASSE: ${state.playerClass==='mago'?'Mago ataca com magia SEM arma.':state.playerClass==='ladino'?'Ladino esquiva e acha caminhos ocultos.':'Guerreiro aguenta mais dano.'}
+4. NÍVEL ${state.level}: inimigos fracos ficam mais fáceis, dragão continua mortal.
+5. EVENTOS ALEATÓRIOS (~40%): monstros, clima, armadilhas, NPCs. Só quando cena anterior resolvida.
+6. REALISTA: sem item = não pode usar.
+7. MORTES FÁCEIS: decisões ruins matam.
+8. MAPA: Floresta Sombria → Trilha Esquecida → Aldeia de Millhaven (ferreiro, curandeira, sábio) → Estrada das Sombras → Pântano Negro → Montanhas Negras → Covil de Varathos
+9. DANO: slime 5-8, goblin 8-15, lobo 12-20, bandido 10-15, dragão 25-45.
+10. SIDE QUESTS: NPCs dão quests. Ferreiro→minério, sábio→artefato, curandeira→cogumelos, capitão→bandidos.
+11. CRAFTING: materiais (Graveto, Pedra afiada, Pano, Ervas medicinais, Frasco vazio, Corda, Couro de lobo, Pena, Cogumelo vermelho, Pólvora). Dê como recompensa de exploração.
+12. CURA: ervas +10hp, poção +30hp, curandeira +50hp.
+13. XP: 5-15 por ação significativa.
+14. HP <= 0 = MORTE.
+
+Tags HTML na narração: <span class="dmg">dano</span>, <span class="item">item</span>, <span class="loc">local</span>, <span class="npc">NPC</span>, <span class="quest">quest</span>
+
+Responda APENAS em JSON puro sem markdown:
+{"n":"narração","hp":0,"xp":0,"loc":null,"add":[],"rm":[],"wp":${state.hasWeapon},"arm":${state.hasArmor},"dd":0,"qs":${state.questStage},"dead":false,"won":false,"npc":${state.metNpc},"qa":null,"qc":null,"enemy":null}`;
+
+  // Build conversation history for Gemini format
+  const contents = [];
+
+  // Add history
+  const recent = state.history.slice(-10);
+  for (const h of recent) {
+    contents.push({ role: 'user', parts: [{ text: 'Ação: ' + h.a }] });
+    contents.push({ role: 'model', parts: [{ text: h.narrationText }] });
+  }
+  contents.push({ role: 'user', parts: [{ text: 'Ação: ' + action }] });
+
+  const maxRetries = 3;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: {
+            temperature: 0.9,
+            maxOutputTokens: 500,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+
+      const data = await resp.json();
+
+      // Rate limit — wait and retry
+      if (resp.status === 429) {
+        const wait = Math.min(10, (attempt + 1) * 3);
+        addMsg('⏳ Aguardando... (' + wait + 's)', 'system');
+        await new Promise(r => setTimeout(r, wait * 1000));
+        // remove the waiting msg
+        const msgs = chat.querySelectorAll('.msg.system');
+        const last = msgs[msgs.length - 1];
+        if (last && last.textContent.includes('Aguardando')) last.remove();
+        continue;
+      }
+
+      if (!resp.ok) throw new Error(data.error?.message || 'API error');
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const clean = text.replace(/```json|```/g, '').trim();
+      return JSON.parse(clean);
+    } catch (err) {
+      console.error('Gemini Error (attempt ' + (attempt+1) + '):', err);
+      if (attempt < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+      return {
+        n:"O vento sopra frio. Algo se move na escuridão, mas o momento passa... <span class='dmg'>[Erro de conexão — tente de novo]</span>",
+        hp:0,xp:0,loc:null,add:[],rm:[],
+        wp:state.hasWeapon,arm:state.hasArmor,
+        dd:0,qs:state.questStage,dead:false,won:false,
+        npc:state.metNpc,qa:null,qc:null,enemy:null
+      };
+    }
+  }
+}
+
+// ==================== GAME LOOP ====================
+async function sendAction() {
+  const action = inputEl.value.trim();
+  if (!action || state.gameOver || busy) return;
+  busy = true; inputEl.value = ''; inputEl.disabled = true;
+
+  addMsg(action, 'player');
+  showTyping();
+
+  const r = await callAI(action);
+
+  state.hp = Math.min(state.maxHp, Math.max(0, state.hp + (r.hp||0)));
+  state.xp += (r.xp||0);
+  if(r.loc){state.location=r.loc;if(!state.visitedPlaces.includes(r.loc))state.visitedPlaces.push(r.loc);}
+  if(r.add)r.add.forEach(i=>{if(!state.inventory.includes(i))state.inventory.push(i);});
+  if(r.rm)r.rm.forEach(i=>{const x=state.inventory.findIndex(v=>v.toLowerCase()===i.toLowerCase());if(x!==-1)state.inventory.splice(x,1);});
+  if(r.wp!==undefined)state.hasWeapon=r.wp;
+  if(r.arm!==undefined)state.hasArmor=r.arm;
+  if(r.dd)state.dragonHp=Math.max(0,state.dragonHp-r.dd);
+  if(r.qs!==undefined)state.questStage=r.qs;
+  if(r.npc!==undefined)state.metNpc=r.npc;
+  if(r.enemy)state.killedEnemies.push(r.enemy);
+
+  if(r.qa){const exists=state.quests.find(q=>q.id===r.qa);
+    if(!exists){state.quests.push({id:r.qa,status:'active'});const d=QUESTS_DEF.find(x=>x.id===r.qa);if(d)addMsg('✦ Nova missão: '+d.name,'system');}}
+  if(r.qc){const q=state.quests.find(q=>q.id===r.qc);
+    if(q){q.status='done';const d=QUESTS_DEF.find(x=>x.id===r.qc);if(d)addMsg('✦ Missão concluída: '+d.name,'system');}}
+
+  state.turnCount++;
+  state.history.push({ a: action, narrationText: r.n.replace(/<[^>]*>/g,'') });
+
+  await typeText(r.n, 'narrator');
+  updateHud();
+  checkLevelUp();
+
+  if(r.dead||state.hp<=0){
+    state.hp=0;state.gameOver=true;updateHud();
+    setTimeout(()=>{addMsg('VOCÊ MORREU','death');document.getElementById('restart-btn').style.display='block';document.getElementById('input-area').style.display='none';},400);
+    busy=false;return;
+  }
+
+  if(r.won||state.dragonHp<=0){
+    state.gameOver=true;const q=state.quests.find(q=>q.id==='main');if(q)q.status='done';
+    setTimeout(()=>{addMsg('VARATHOS FOI DERROTADO — VITÓRIA','victory');document.getElementById('restart-btn').style.display='block';document.getElementById('input-area').style.display='none';},400);
+    busy=false;return;
+  }
+
+  inputEl.disabled=false;inputEl.focus();busy=false;
+}
+
+// ==================== RESTART ====================
+document.getElementById('restart-btn').onclick = function(){
+  chat.innerHTML='';
+  document.getElementById('restart-btn').style.display='none';
+  document.getElementById('input-area').style.display='block';
+  inputEl.disabled=false;busy=false;
+  showScreen('screen-class');
+};
+
+// ==================== INPUT ====================
+inputEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendAction();});
+document.getElementById('send-btn').onclick = sendAction;
+
+// ==================== START GAME ====================
+function startGame(){
+  addMsg('· · · SESSÃO INICIADA · · ·','system');
+  const intro={
+    guerreiro:'Seus músculos doem. Cicatrizes antigas cobrem seus braços. Você é forte — mas contra o que vem, força pode não bastar.',
+    mago:'Uma energia fraca pulsa nas suas mãos. Poder arcano diminuído, mas presente. Sem cajado, sem grimório. Apenas instinto.',
+    ladino:'Você se move em silêncio por instinto. Seus olhos se adaptam rápido. Cada sombra é esconderijo, cada ruído é informação.'
+  };
+  setTimeout(async()=>{
+    await typeText(
+      'Você abre os olhos. Chão úmido, folhas mortas. Árvores negras bloqueiam a luz. '+intro[state.playerClass]+' Ao longe, fumaça sobe das <span class="loc">Montanhas Negras</span>. Dizem que lá vive <span class="npc">Varathos</span>, o dragão que amaldiçoou estas terras.',
+      'narrator'
+    );
+    inputEl.focus();
+  },500);
+}
+</script>
+</body>
+</html>
